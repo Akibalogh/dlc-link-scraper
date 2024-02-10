@@ -31,9 +31,16 @@ def get_internal_links(driver, domain):
         href = link.get_attribute('href')
         if href:
             full_url = urljoin('https://' + domain, href)  # Ensure full URL
-            if urlparse(full_url).netloc.endswith(domain):
-                internal_links.add(full_url)
+            normalized_url = normalize_url(full_url)
+            if urlparse(normalized_url).netloc.endswith(domain):
+                internal_links.add(normalized_url)
     return internal_links
+
+def normalize_url(url):
+    parsed_url = urlparse(url)
+    normalized_url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path
+    normalized_url = normalized_url.rstrip('/')  # Remove trailing slash for consistency
+    return normalized_url
 
 def clean_url(url):
     clean = urlparse(url).netloc + urlparse(url).path
@@ -49,9 +56,10 @@ def scrape_site(driver, start_url, domain, subfolder):
     
     while urls_to_visit:
         url = urls_to_visit.pop()
-        if url in visited_urls:
+        normalized_url = normalize_url(url)
+        if normalized_url in visited_urls:
             continue
-        visited_urls.add(url)
+        visited_urls.add(normalized_url)
         
         driver.get(url)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
@@ -62,7 +70,7 @@ def scrape_site(driver, start_url, domain, subfolder):
         soup = BeautifulSoup(body_content, 'lxml')
         page_text = soup.get_text(separator=' ', strip=True)
 
-        filename = f"{subfolder}/{clean_url(url)}.txt"
+        filename = f"{subfolder}/{clean_url(normalized_url)}.txt"
         with open(filename, 'w', encoding='utf-8') as file:
             file.write(page_text)
         

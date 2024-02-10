@@ -7,6 +7,7 @@ from selenium.common.exceptions import TimeoutException
 from urllib.parse import urlparse, urljoin
 import os
 import time
+from bs4 import BeautifulSoup
 
 def initialize_driver():
     chrome_options = Options()
@@ -56,9 +57,14 @@ def scrape_site(driver, start_url, domain, subfolder):
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
         
         body_content = driver.find_element(By.TAG_NAME, 'body').get_attribute('innerHTML')
+    
+        # New lines to parse with BeautifulSoup and extract text
+        soup = BeautifulSoup(body_content, 'lxml')
+        page_text = soup.get_text(separator=' ', strip=True)
+
         filename = f"{subfolder}/{clean_url(url)}.txt"
         with open(filename, 'w', encoding='utf-8') as file:
-            file.write(body_content)
+            file.write(page_text)
         
         print(f"Saved: {filename}")
         
